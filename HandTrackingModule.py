@@ -30,18 +30,22 @@ class handDetector():
                                                self.mpHands.HAND_CONNECTIONS)
         return img
 
+    # findPosition 메서드는 감지한 손의 랜드마크(특징점)를 추출합니다.
     def findPosition(self, img, handNo=0, draw=True, color =  (255, 0, 255), z_axis=False):
 
         lmList = []
+        # 손이 감지된 경우에만 랜드마크 추출 및 그리기를 수행
         if self.results.multi_hand_landmarks:
             myHand = self.results.multi_hand_landmarks[handNo]
             for id, lm in enumerate(myHand.landmark):
              #   print(id, lm)
                 h, w, c = img.shape
+                # 2차원
                 if z_axis == False:
                    cx, cy = int(lm.x * w), int(lm.y * h)
                     # print(id, cx, cy)
                    lmList.append([id, cx, cy])
+                # 3차원
                 elif z_axis:
                     cx, cy, cz = int(lm.x * w), int(lm.y * h), round(lm.z,3)
                     # print(id, cx, cy, cz)
@@ -69,9 +73,11 @@ def main():
         fps = 1 / (cTime - pTime)
         pTime = cTime
 
+        # FPS 출력
         cv2.putText(img, str(int(fps)), (10, 70), cv2.FONT_HERSHEY_PLAIN, 3,
                     (255, 0, 255), 3)
 
+        # 카메라 보여주고 'q'를 누르면 종료
         cv2.imshow("Image", img)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
