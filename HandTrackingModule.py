@@ -56,7 +56,6 @@ class handDetector():
 
         return lmList
 
-
 def main():
     pTime = 0
     cTime = 0
@@ -82,6 +81,45 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
+def overlayPNG(imgBack, imgFront, pos=[0, 0]):
+    """
+     PNG 이미지를 투명도와 알파 블렌딩을 사용하여 다른 이미지 위에 오버레이합니다.
+     함수는 포함된 위치, 음수 좌표를 포함한 경계를 처리하며 오버레이 이미지를 잘라내어 사용합니다. 가장자리는 알파 블렌딩을 사용하여 부드럽게 처리됩니다.
+
+     :param imgBack: 배경 이미지로, (높이, 너비, 3) 또는 (높이, 너비, 4) 모양의 NumPy 배열입니다. 3채널 또는 4채널 이미지를 지원합니다.
+     :param imgFront: 오버레이할 PNG 이미지로, (높이, 너비, 4) 모양의 NumPy 배열입니다. RGBA 형식의 이미지를 기대합니다.
+     :param pos: 이미지를 오버레이 할 x 및 y 좌표를 나타내는 리스트입니다. 음수일 수 있고 이미지를 벗어날 수 있습니다.
+     :return: 오버레이가 적용된 새로운 이미지로, `imgBack`과 같은 모양의 NumPy 배열입니다.
+     """
+    hf, wf, cf = imgFront.shape
+    hb, wb, cb = imgBack.shape
+
+    x1, y1 = max(pos[0], 0), max(pos[1], 0)
+    x2, y2 = min(pos[0] + wf, wb), min(pos[1] + hf, hb)
+
+    # 음수 위치의 경우 오버레이 이미지의 시작 위치를 변경합니다.
+    x1_overlay = 0 if pos[0] >= 0 else -pos[0]
+    y1_overlay = 0 if pos[1] >= 0 else -pos[1]
+
+    # 오버레이할 슬라이스의 차원을 계산합니다.
+    wf, hf = x2 - x1, y2 - y1
+
+    # 오버레이가 배경 완전히 벗어나면 원래 배경을 반환합니다.
+    if wf <= 0 or hf <= 0:
+        return imgBack
+
+    # 오버레이 이미지에서 알파 채널을 추출하고 역 마스크를 만듭니다.
+    alpha = imgFront[y1_overlay:y1_overlay + hf, x1_overlay:x1_overlay + wf, 3] / 255.0
+    inv_alpha = 1.0 - alpha
+
+    # 오버레이 이미지에서 RGB 채널을 추출합니다.
+    imgRGB = imgFront[y1_overlay:y1_overlay + hf, x1_overlay:x1_overlay + wf, 0:3]
+
+    # 알파 블렌딩을 사용하여 전경과 배경을 결합합니다.
+    for c in range(0, 3):
+        imgBack[y1:y2, x1:x2, c] = imgBack[y1:y2, x1:x2, c] * inv_alpha + imgRGB[:, :, c] * alpha
+
+    return imgBack
 
 if __name__ == "__main__":
     main()

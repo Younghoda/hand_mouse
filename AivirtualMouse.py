@@ -6,6 +6,27 @@ from ctypes import cast, POINTER
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 
+from queue import Queue
+from speech_recog_module import speech_recognition_thread
+import threading
+
+import webbrowser
+from game_module import run_game
+
+# OpenCV 라이브러리를 사용할 때 최적화 및 OpenCL을 사용하는 부분을 설정
+cv2.ocl.setUseOpenCL(True)
+cv2.setUseOptimized(True)
+
+# Queue를 생성하여 스레드 간 통신
+# 음성 인식
+speech_queue = Queue()
+speech_thread = threading.Thread(target=speech_recognition_thread, args=(speech_queue,))
+speech_thread.daemon = True
+speech_thread.start()
+
+sp=None
+
+
 # 웹캠 화면 크기 설정 (640X480)
 wCam, hCam = 640, 480
 cap = cv2.VideoCapture(0)
@@ -47,6 +68,8 @@ volPer = 0
 vol = 0
 color = (0,215,255)
 
+
+
 # lmList는 손가락 관절의 리스트이고, tipIds는 손가락 끝 부분에 해당하는 관절의 인덱스를 나타냄
 tipIds = [4, 8, 12, 16, 20]
 mode = ''
@@ -64,6 +87,53 @@ while True:
     lmList = detector.findPosition(img, draw=False)
    # print(lmList)
     fingers = []
+
+    # 음성 명령을 확인
+    while not speech_queue.empty():
+        command = speech_queue.get()
+        # if "play" in command:
+        #     music_queue.put(True)
+
+        if "search" in command:
+            # 검색할 때 사용할 검색 엔진을 설정 (여기서는 구글)
+            search_engine = "https://www.google.com/search?q="
+
+            # 검색어 추출 (예: "search Python programming")
+            search_query = " ".join(command.split()[1:])
+
+            # 웹 브라우저로 검색 열기
+            webbrowser.open(search_engine + search_query)
+
+        # elif "yolo" in command:
+        #
+        #     cap.release()
+        #     cv2.destroyAllWindows()
+        #
+        #     main()
+        #     cap = cv2.VideoCapture(0)
+        #     cap.set(3, wCam)
+        #     cap.set(4, hCam)
+
+        elif "game" in command:
+
+            cap.release()
+            cv2.destroyAllWindows()
+
+            run_game()
+            cap = cv2.VideoCapture(0)
+            cap.set(3, wCam)
+            cap.set(4, hCam)
+
+        # elif "racing" in command:
+        #
+        #     cap.release()
+        #     cv2.destroyAllWindows()
+        #
+        #     racing_main()
+        #     cap = cv2.VideoCapture(0)
+        #     cap.set(3, wCam)
+        #     cap.set(4, hCam)
+
 
     if len(lmList) != 0:
 
@@ -235,3 +305,5 @@ while True:
     def putText(mode,loc = (250, 450), color = (0, 255, 255)):
         cv2.putText(img, str(mode), loc, cv2.FONT_HERSHEY_COMPLEX_SMALL,
                     3, color, 3)
+
+
